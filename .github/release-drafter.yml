@@ -1,0 +1,36 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+commitish: main
+categories:
+  - title: Breaking changes
+    # shortcut: pre-1.0 policy; change to major when publishing 1.0.0.
+    semver-increment: minor
+    exclusive: true
+    when:
+      conventional:
+        breaking: true
+  - title: Features
+    semver-increment: minor
+    exclusive: true
+    when:
+      conventional:
+        type: feat
+  - title: Fixes
+    semver-increment: patch
+    exclusive: true
+    when:
+      conventional:
+        type: fix
+  - title: Maintenance
+    semver-increment: patch
+change-template: '- $TITLE (#$NUMBER)'
+change-title-escapes: '\<*_&@#`'
+template: |
+  ## Changes
+
+  $CHANGES
+
+  ## Installation
+
+  Extract the attached ZIP into KOReader's `plugins` directory and restart KOReader.
+  The installable ZIP is attached automatically after publishing.

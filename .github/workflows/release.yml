@@ -1,0 +1,77 @@
+name: Releases
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  draft:
+    if: github.event_name != 'release' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-draft
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: release-drafter/release-drafter@d1a19e60e81a7e650d00a7de9277f87e439117ea # v7
+        with:
+          publish: false
+          commitish: ${{ github.sha }}
+
+  package:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+      - name: Run plugin checks
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes luajit
+          for test in tests/templates_test.lua tests/integration_test.lua tests/manager_test.lua tests/picker_test.lua; do
+            luajit "$test"
+          done
+          for file in _meta.lua main.lua templates.lua tests/*.lua; do
+            luajit -b "$file" /dev/null
+          done
+      - name: Build installable ZIP
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+
+          tag = os.environ['RELEASE_TAG']
+          if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', tag):
+              raise SystemExit('Expected a release tag such as v0.1.1')
+          files = ('_meta.lua', 'main.lua', 'templates.lua', 'README.md')
+          path = Path(os.environ['RUNNER_TEMP']) / f'note-templates-{tag}.zip'
+          with ZipFile(path, 'w', ZIP_DEFLATED) as archive:
+              for name in files:
+                  archive.write(name, f'note-templates.koplugin/{name}')
+          with ZipFile(path) as archive:
+              assert archive.testzip() is None
+              assert set(archive.namelist()) == {
+                  f'note-templates.koplugin/{name}' for name in files
+              }
+          PY
+      - name: Attach ZIP to published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/note-templates-$RELEASE_TAG.zip" --clobber

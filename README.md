@@ -44,6 +44,16 @@ The plugin wraps `setBookmarkNote` once per reader instance. During its synchron
 
 There is no public note-editor extension hook. An incompatible API or constructor shape leaves native editing available and reports compatibility trouble once per application session. Other note-editor plugins may conflict with this private integration; no combinations have been runtime-tested. Unrelated input dialogs are not decorated. No clipboard, note-format, sync, placeholder, per-book, keyboard-shortcut, or external-service features are included.
 
+## Releases
+
+Merging PRs into `main` updates an unpublished GitHub release draft through Release Drafter. Use conventional PR titles: `fix: ...` suggests a patch version, `feat: ...` suggests a minor version, and `feat!: ...` or `fix(scope)!: ...` marks a breaking change. The largest bump across merged PRs wins. Other changes default to a patch bump. Use the PR title as the squash commit message to keep Git history consistent.
+
+Before 1.0, breaking changes also suggest a minor bump. When publishing 1.0.0, change the breaking-change category in `.github/release-drafter.yml` to `semver-increment: major` for subsequent releases. Version numbers live in release tags; this workflow does not edit plugin settings or `_meta.lua`.
+
+Review the draft, then publish it manually. The **Releases** workflow checks the published tag, runs the standalone Lua tests and syntax checks, and attaches `note-templates-vX.Y.Z.zip`. The archive contains `_meta.lua`, `main.lua`, `templates.lua`, and this README inside `note-templates.koplugin/`. Tests, plans, and automation files are excluded. Packaging accepts stable tags such as `v0.1.1`; prerelease packaging is not configured. Wait for the workflow to finish before downloading the ZIP. If it fails, fix the cause and rerun the failed job from GitHub Actions.
+
+The workflow's manual **Run workflow** action on `main` refreshes the draft without publishing. GitHub's built-in token handles drafting and uploads; no additional secret is required.
+
 ## Verification
 
 Run from this directory using LuaJIT:
